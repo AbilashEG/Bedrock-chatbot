@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chatbot - AWS Bedrock</title>
+<style>
+    /* CSS variables for light and dark modes */
+    :root {
+        --bg-color: #f4f7f9;
+        --chat-bg: white;
+        --header-bg: #4a90e2;
+        --header-text: white;
+        --user-msg-bg: #4a90e2;
+        --user-msg-text: white;
+        --bot-msg-bg: #e5e5ea;
+        --bot-msg-text: #333;
+        --input-bg: white;
+        --input-border: #ccc;
+        --input-focus-border: #4a90e2;
+        --send-btn-bg: #4a90e2;
+        --send-btn-hover-bg: #357ABD;
+        --typing-text: #555;
+        --spinner-border-light: #f3f3f3;
+        --spinner-border-dark: #4a90e2;
+    }
+   body.dark {
+    --bg-color: #121212;                  /* Very dark but not pure black */
+    --chat-bg: #1f1f1f;                  /* Dark graphite for chat container */
+    --header-bg: #2c3e50;                /* Deep blue-gray */
+    --header-text: #ecf0f1;              /* Soft off-white */
+    --user-msg-bg: #3b5998;              /* Facebook blue shade for user */
+    --user-msg-text: #ecf0f1;            /* Light text */
+    --bot-msg-bg: #2c3e50;               /* Dark blue-gray bubble for bot */
+    --bot-msg-text: #bdc3c7;             /* Light gray text */
+    --input-bg: #2c3e50;                 /* Input background dark blue-gray */
+    --input-border: #34495e;             /* Subtle border */
+    --input-focus-border: #3498db;       /* Bright blue focus */
+    --send-btn-bg: #3498db;              /* Vibrant blue send button */
+    --send-btn-hover-bg: #2980b9;        /* Darker blue hover */
+    --typing-text: #95a5a6;              /* Muted gray */
+    --spinner-border-light: #34495e;    /* Spinner light part */
+    --spinner-border-dark: #3498db;     /* Spinner blue part */
+}
+
+
+    body, html {
+        margin: 0; padding: 0; height: 100%;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #chat-container {
+        width: 600px;
+        height: 600px;
+        background: var(--chat-bg);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    header {
+        padding: 20px;
+        background: var(--header-bg);
+        color: var(--header-text);
+        font-weight: bold;
+        font-size: 1.25rem;
+        text-align: center;
+        user-select: none;
+        position: relative;
+    }
+    /* Dark mode toggle button */
+    #dark-mode-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: 2px solid var(--header-text);
+        border-radius: 20px;
+        width: 40px;
+        height: 24px;
+        cursor: pointer;
+        outline: none;
+    }
+    #dark-mode-toggle:before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        background: var(--header-text);
+        border-radius: 50%;
+        transition: left 0.3s ease;
+    }
+    body.dark #dark-mode-toggle:before {
+        left: 19px;
+        background: var(--header-bg);
+    }
+
+    #messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background: var(--chat-bg);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .message {
+        max-width: 70%;
+        padding: 12px 18px;
+        border-radius: 18px;
+        line-height: 1.4;
+        font-size: 0.95rem;
+        word-wrap: break-word;
+        position: relative;
+    }
+    .user {
+        align-self: flex-end;
+        background: var(--user-msg-bg);
+        color: var(--user-msg-text);
+        border-bottom-right-radius: 0;
+    }
+    .bot {
+        align-self: flex-start;
+        background: var(--bot-msg-bg);
+        color: var(--bot-msg-text);
+        border-bottom-left-radius: 0;
+    }
+    #input-container {
+        display: flex;
+        padding: 15px;
+        border-top: 1px solid #ddd;
+        background: var(--chat-bg);
+    }
+    #input {
+        flex: 1;
+        padding: 10px 15px;
+        font-size: 1rem;
+        border: 1px solid var(--input-border);
+        border-radius: 25px;
+        outline: none;
+        transition: border-color 0.3s ease;
+        background: var(--input-bg);
+        color: inherit;
+    }
+    #input::placeholder {
+        color: #888;
+    }
+    #input:focus {
+        border-color: var(--input-focus-border);
+    }
+    #send-btn {
+        margin-left: 12px;
+        background: var(--send-btn-bg);
+        border: none;
+        color: rgba(124, 54, 214, 0.432);
+        padding: 0 20px;
+        font-size: 1rem;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    #send-btn:hover {
+        background: var(--send-btn-hover-bg);
+    }
+
+    #typing-indicator {
+        font-style: italic;
+        color: var(--typing-text);
+        padding-left: 15px;
+        height: 20px;
+        user-select: none;
+    }
+
+    /* Spinner */
+    .spinner {
+        margin-left: 10px;
+        border: 3px solid var(--spinner-border-light);
+        border-top: 3px solid var(--spinner-border-dark);
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+</head>
+<body>
+    <div id="chat-container">
+        <header>
+            AWS Bedrock Chatbot
+            <button id="dark-mode-toggle" aria-label="Toggle dark mode"></button>
+        </header>
+        <div id="messages"></div>
+        <div id="typing-indicator" style="display:none;">
+            Bot is typing <span class="spinner"></span>
+        </div>
+        <form id="input-container" onsubmit="return sendMessage(event)">
+            <input type="text" id="input" autocomplete="off" placeholder="Type your message..." required />
+            <button type="submit" id="send-btn">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('input');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const darkToggle = document.getElementById('dark-mode-toggle');
+        const body = document.body;
+
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + sender;
+            msgDiv.textContent = text;
+            messagesEl.appendChild(msgDiv);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            inputEl.value = '';
+            inputEl.disabled = true;
+
+            // Show typing indicator
+            typingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message})
+                });
+                const data = await response.json();
+                appendMessage(data.response, 'bot');
+            } catch (error) {
+                appendMessage('Error: Could not reach server.', 'bot');
+            } finally {
+                inputEl.disabled = false;
+                inputEl.focus();
+                typingIndicator.style.display = 'none';
+            }
+        }
+
+        // Dark mode toggle
+        function setDarkMode(enabled) {
+            if(enabled) {
+                body.classList.add('dark');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                body.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
+
+        darkToggle.addEventListener('click', () => {
+            setDarkMode(!body.classList.contains('dark'));
+        });
+
+        // Load saved preference
+        window.onload = () => {
+            const saved = localStorage.getItem('darkMode');
+            if(saved === 'true') {
+                setDarkMode(true);
+            }
+        };
+    </script>
+</body>
+</html>
+
