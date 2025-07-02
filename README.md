@@ -24,7 +24,7 @@ AWS SDK (Boto3 / AWS CLI)
 
 Frontend UI (React/HTML/CSS or your choice)
 
-Backend API (Flask/Node.js or your choice)
+Backend API (Flask)
 
 Getting Started
 Configure AWS IAM roles with Bedrock permissions
