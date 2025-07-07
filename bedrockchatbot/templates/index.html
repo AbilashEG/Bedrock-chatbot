@@ -1,284 +1,288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Chatbot - AWS Bedrock</title>
-<style>
-    /* CSS variables for light and dark modes */
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AWS Bedrock Chatbot</title>
+  <style>
     :root {
-        --bg-color: #f4f7f9;
-        --chat-bg: white;
-        --header-bg: #4a90e2;
-        --header-text: white;
-        --user-msg-bg: #4a90e2;
-        --user-msg-text: white;
-        --bot-msg-bg: #e5e5ea;
-        --bot-msg-text: #333;
-        --input-bg: white;
-        --input-border: #ccc;
-        --input-focus-border: #4a90e2;
-        --send-btn-bg: #4a90e2;
-        --send-btn-hover-bg: #357ABD;
-        --typing-text: #555;
-        --spinner-border-light: #f3f3f3;
-        --spinner-border-dark: #4a90e2;
+      --bg-color: #f4f7f9;
+      --chat-bg: white;
+      --header-bg: #4a90e2;
+      --header-text: white;
+      --user-msg-bg: #4a90e2;
+      --user-msg-text: white;
+      --bot-msg-bg: #f5f6fa;
+      --bot-msg-text: #222;
+      --bot-card-bg: #f0f1f5;
+      --bot-card-border: #e0e4ea;
+      --input-bg: white;
+      --input-border: #ccc;
+      --input-focus-border: #4a90e2;
+      --send-btn-bg: #4a90e2;
+      --send-btn-hover-bg: #357ABD;
+      --typing-text: #555;
+      --highlight: #4a90e2;
     }
-   body.dark {
-    --bg-color: #121212;                  /* Very dark but not pure black */
-    --chat-bg: #1f1f1f;                  /* Dark graphite for chat container */
-    --header-bg: #2c3e50;                /* Deep blue-gray */
-    --header-text: #ecf0f1;              /* Soft off-white */
-    --user-msg-bg: #3b5998;              /* Facebook blue shade for user */
-    --user-msg-text: #ecf0f1;            /* Light text */
-    --bot-msg-bg: #2c3e50;               /* Dark blue-gray bubble for bot */
-    --bot-msg-text: #bdc3c7;             /* Light gray text */
-    --input-bg: #2c3e50;                 /* Input background dark blue-gray */
-    --input-border: #34495e;             /* Subtle border */
-    --input-focus-border: #3498db;       /* Bright blue focus */
-    --send-btn-bg: #3498db;              /* Vibrant blue send button */
-    --send-btn-hover-bg: #2980b9;        /* Darker blue hover */
-    --typing-text: #95a5a6;              /* Muted gray */
-    --spinner-border-light: #34495e;    /* Spinner light part */
-    --spinner-border-dark: #3498db;     /* Spinner blue part */
-}
 
+    body.dark {
+      --bg-color: #121212;
+      --chat-bg: #1f1f1f;
+      --header-bg: #2c3e50;
+      --header-text: #ecf0f1;
+      --user-msg-bg: #3b5998;
+      --user-msg-text: #ecf0f1;
+      --bot-msg-bg: #23263a;
+      --bot-msg-text: #d7e6fa;
+      --bot-card-bg: #23263a;
+      --bot-card-border: #35395a;
+      --input-bg: #2c3e50;
+      --input-border: #34495e;
+      --input-focus-border: #3498db;
+      --send-btn-bg: #3498db;
+      --send-btn-hover-bg: #2980b9;
+      --typing-text: #95a5a6;
+      --highlight: #8ec6f7;
+    }
 
     body, html {
-        margin: 0; padding: 0; height: 100%;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: var(--bg-color);
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-color);
+      display: flex; justify-content: center; align-items: center;
     }
+
     #chat-container {
-        width: 600px;
-        height: 600px;
-        background: var(--chat-bg);
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+      width: 600px; height: 650px;
+      background: var(--chat-bg); border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column; overflow: hidden;
     }
+
     header {
-        padding: 20px;
-        background: var(--header-bg);
-        color: var(--header-text);
-        font-weight: bold;
-        font-size: 1.25rem;
-        text-align: center;
-        user-select: none;
-        position: relative;
+      padding: 20px; background: var(--header-bg);
+      color: var(--header-text); font-weight: bold;
+      font-size: 1.25rem; text-align: center;
+      position: relative;
     }
-    /* Dark mode toggle button */
+
     #dark-mode-toggle {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: transparent;
-        border: 2px solid var(--header-text);
-        border-radius: 20px;
-        width: 40px;
-        height: 24px;
-        cursor: pointer;
-        outline: none;
+      position: absolute; right: 15px; top: 50%;
+      transform: translateY(-50%);
+      background: transparent; border: 2px solid var(--header-text);
+      border-radius: 20px; width: 40px; height: 24px;
+      cursor: pointer;
     }
+
     #dark-mode-toggle:before {
-        content: "";
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 18px;
-        height: 18px;
-        background: var(--header-text);
-        border-radius: 50%;
-        transition: left 0.3s ease;
+      content: ""; position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px; background: var(--header-text);
+      border-radius: 50%; transition: left 0.3s ease;
     }
+
     body.dark #dark-mode-toggle:before {
-        left: 19px;
-        background: var(--header-bg);
+      left: 19px; background: var(--header-bg);
     }
 
     #messages {
-        flex: 1;
-        padding: 15px;
-        overflow-y: auto;
-        background: var(--chat-bg);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+      flex: 1; padding: 15px; overflow-y: auto;
+      background: var(--chat-bg);
+      display: flex; flex-direction: column; gap: 10px;
     }
+
     .message {
-        max-width: 70%;
-        padding: 12px 18px;
-        border-radius: 18px;
-        line-height: 1.4;
-        font-size: 0.95rem;
-        word-wrap: break-word;
-        position: relative;
+      max-width: 70%; padding: 12px 18px;
+      border-radius: 18px; line-height: 1.4;
+      font-size: 0.97rem; word-wrap: break-word;
+      margin-bottom: 2px;
     }
+
     .user {
-        align-self: flex-end;
-        background: var(--user-msg-bg);
-        color: var(--user-msg-text);
-        border-bottom-right-radius: 0;
+      align-self: flex-end;
+      background: var(--user-msg-bg); color: var(--user-msg-text);
+      border-bottom-right-radius: 0;
     }
+
+    /* BOT CARD STYLE */
     .bot {
-        align-self: flex-start;
-        background: var(--bot-msg-bg);
-        color: var(--bot-msg-text);
-        border-bottom-left-radius: 0;
+      align-self: flex-start;
+      background: none;
+      color: var(--bot-msg-text);
+      border: none;
+      padding: 0;
     }
+    .bot .bot-card {
+      background: var(--bot-card-bg);
+      border: 1.5px solid var(--bot-card-border);
+      border-radius: 16px;
+      padding: 18px 24px 16px 24px;
+      margin: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      font-size: 1.08em;
+      color: var(--bot-msg-text);
+      word-break: break-word;
+      transition: background 0.2s, border 0.2s;
+      white-space: pre-wrap;
+    }
+
+    /* Enhanced list styling inside bot card */
+    .bot-card ol, .bot-card ul {
+      margin: 0.6em 0 0.6em 1.2em;
+      padding: 0 0 0 1.5em;
+    }
+    .bot-card ol {
+      list-style-type: decimal;
+    }
+    .bot-card ul {
+      list-style-type: disc;
+    }
+    .bot-card ul ul {
+      list-style-type: circle;
+      margin-top: 0.2em;
+      margin-bottom: 0.2em;
+    }
+    .bot-card li {
+      margin-bottom: 0.3em;
+      font-size: 1em;
+      line-height: 1.6;
+    }
+    .bot-card strong, .bot-card b {
+      color: var(--highlight);
+      font-weight: 600;
+    }
+    .bot-card em {
+      color: #888;
+      font-style: italic;
+    }
+    .bot-card code {
+      background: #e8eaf6;
+      color: #222;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.96em;
+    }
+    body.dark .bot-card code {
+      background: #23263a;
+      color: #f8f8f8;
+    }
+
     #input-container {
-        display: flex;
-        padding: 15px;
-        border-top: 1px solid #ddd;
-        background: var(--chat-bg);
+      display: flex; flex-direction: column;
+      padding: 15px; border-top: 1px solid #ddd;
+      background: var(--chat-bg);
     }
+
+    form {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%;
+    }
+
     #input {
-        flex: 1;
-        padding: 10px 15px;
-        font-size: 1rem;
-        border: 1px solid var(--input-border);
-        border-radius: 25px;
-        outline: none;
-        transition: border-color 0.3s ease;
-        background: var(--input-bg);
-        color: inherit;
+      flex: 1; padding: 10px 15px; font-size: 1rem;
+      border: 1px solid var(--input-border); border-radius: 25px;
+      background: var(--input-bg); color: inherit;
     }
-    #input::placeholder {
-        color: #888;
+
+    #file {
+      cursor: pointer;
     }
-    #input:focus {
-        border-color: var(--input-focus-border);
-    }
+
     #send-btn {
-        margin-left: 12px;
-        background: var(--send-btn-bg);
-        border: none;
-        color: rgba(124, 54, 214, 0.432);
-        padding: 0 20px;
-        font-size: 1rem;
-        border-radius: 25px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
+      background: var(--send-btn-bg);
+      border: none; color: white;
+      padding: 8px 20px; font-size: 1rem; border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
     }
     #send-btn:hover {
-        background: var(--send-btn-hover-bg);
+      background: var(--send-btn-hover-bg);
     }
 
     #typing-indicator {
-        font-style: italic;
-        color: var(--typing-text);
-        padding-left: 15px;
-        height: 20px;
-        user-select: none;
+      font-style: italic;
+      color: var(--typing-text);
+      padding: 5px 15px;
+      user-select: none;
     }
-
-    /* Spinner */
-    .spinner {
-        margin-left: 10px;
-        border: 3px solid var(--spinner-border-light);
-        border-top: 3px solid var(--spinner-border-dark);
-        border-radius: 50%;
-        width: 16px;
-        height: 16px;
-        animation: spin 1s linear infinite;
-        display: inline-block;
-        vertical-align: middle;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
+  </style>
 </head>
 <body>
-    <div id="chat-container">
-        <header>
-            AWS Bedrock Chatbot
-            <button id="dark-mode-toggle" aria-label="Toggle dark mode"></button>
-        </header>
-        <div id="messages"></div>
-        <div id="typing-indicator" style="display:none;">
-            Bot is typing <span class="spinner"></span>
-        </div>
-        <form id="input-container" onsubmit="return sendMessage(event)">
-            <input type="text" id="input" autocomplete="off" placeholder="Type your message..." required />
-            <button type="submit" id="send-btn">Send</button>
-        </form>
+  <div id="chat-container">
+    <header>
+      AWS Bedrock Chatbot
+      <button id="dark-mode-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+    </header>
+    <div id="messages"></div>
+    <div id="typing-indicator" style="display:none;">Bot is generating...</div>
+    <div id="input-container">
+      <form onsubmit="return sendMessage(event)" method="POST" enctype="multipart/form-data">
+        <input type="text" id="input" name="message" placeholder="Type your message..." autocomplete="off" required />
+        <input type="file" id="file" name="file" />
+        <button type="submit" id="send-btn">Send</button>
+      </form>
     </div>
+  </div>
 
-    <script>
-        const messagesEl = document.getElementById('messages');
-        const inputEl = document.getElementById('input');
-        const typingIndicator = document.getElementById('typing-indicator');
-        const darkToggle = document.getElementById('dark-mode-toggle');
-        const body = document.body;
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const fileEl = document.getElementById('file');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const toggleBtn = document.getElementById('dark-mode-toggle');
+    const body = document.body;
 
-        function appendMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message ' + sender;
-            msgDiv.textContent = text;
-            messagesEl.appendChild(msgDiv);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
+    function appendMessage(text, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'message ' + sender;
+      if (sender === 'bot') {
+        msgDiv.innerHTML = `<div class="bot-card">${text}</div>`;
+      } else {
+        msgDiv.textContent = text;
+      }
+      messagesEl.appendChild(msgDiv);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
 
-        async function sendMessage(event) {
-            event.preventDefault();
-            const message = inputEl.value.trim();
-            if (!message) return;
+    async function sendMessage(e) {
+      e.preventDefault();
+      const message = inputEl.value.trim();
+      const file = fileEl.files[0];
 
-            appendMessage(message, 'user');
-            inputEl.value = '';
-            inputEl.disabled = true;
+      if (!message && !file) return;
 
-            // Show typing indicator
-            typingIndicator.style.display = 'block';
+      appendMessage(message, 'user');
+      inputEl.value = '';
+      fileEl.value = '';
+      typingIndicator.style.display = 'block';
 
-            try {
-                const response = await fetch('/ask', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({message})
-                });
-                const data = await response.json();
-                appendMessage(data.response, 'bot');
-            } catch (error) {
-                appendMessage('Error: Could not reach server.', 'bot');
-            } finally {
-                inputEl.disabled = false;
-                inputEl.focus();
-                typingIndicator.style.display = 'none';
-            }
-        }
+      const formData = new FormData();
+      formData.append("message", message);
+      if (file) formData.append("file", file);
 
-        // Dark mode toggle
-        function setDarkMode(enabled) {
-            if(enabled) {
-                body.classList.add('dark');
-                localStorage.setItem('darkMode', 'true');
-            } else {
-                body.classList.remove('dark');
-                localStorage.setItem('darkMode', 'false');
-            }
-        }
-
-        darkToggle.addEventListener('click', () => {
-            setDarkMode(!body.classList.contains('dark'));
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          body: formData
         });
+        const data = await res.json();
+        appendMessage(data.response, 'bot');
+      } catch (err) {
+        appendMessage("⚠️ Error contacting server.", 'bot');
+      } finally {
+        typingIndicator.style.display = 'none';
+      }
+    }
 
-        // Load saved preference
-        window.onload = () => {
-            const saved = localStorage.getItem('darkMode');
-            if(saved === 'true') {
-                setDarkMode(true);
-            }
-        };
-    </script>
+    toggleBtn.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      localStorage.setItem('darkMode', body.classList.contains('dark'));
+    });
+
+    window.onload = () => {
+      if (localStorage.getItem('darkMode') === 'true') {
+        body.classList.add('dark');
+      }
+    };
+  </script>
 </body>
 </html>
-
